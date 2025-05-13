@@ -6,9 +6,11 @@ use Illuminate\Http\Request;
 
 use App\Models\Publication;
 use App\Models\Category;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class PublicationController extends Controller
 {
@@ -32,6 +34,14 @@ class PublicationController extends Controller
      */
     public function create(Request $request)
     {
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
         $validated = $request->validate([
             'title' => 'required|min:2|max:100',
             'description' => 'required|min:2|max:1500',
@@ -48,15 +58,7 @@ class PublicationController extends Controller
             'user_id' => $validated["user_id"],
         ]);
 
-        return redirect("");
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+        return redirect("/dashboard");
     }
 
     /**
@@ -70,7 +72,7 @@ class PublicationController extends Controller
         $date = $datetime->format("d-m-y");
         $hour = $datetime->format("H:i");
 
-        return Inertia::render('Advertisement', [
+        return Inertia::render('Publication', [
             'publication' => $publication,
             'date' => $date,
             'hour' => $hour,
@@ -82,7 +84,12 @@ class PublicationController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $publication = Publication::find($id);
+        $categories = Category::all("id", "name");
+        return Inertia::render('Edit', [
+            'publication' => $publication,
+            'categories' => $categories
+        ]);
     }
 
     /**
@@ -123,6 +130,19 @@ class PublicationController extends Controller
 
         $publications = Publication::all()->where('user_id', $userId);
 
+        return $publications;
+    }
+
+     public function reload(Request $request)
+    {
+        $category = $request->get('category');
+        $page = $request->get('page');
+        if ($category != "all") {
+            $publications = DB::table('publications')->where('category_id', $category)->orderBy('updated_at')->paginate($request->get('number'), page: $page);
+        } else {
+            $publications = DB::table('publications')->orderBy('updated_at')->paginate($request->get('number'));
+        }
+        
         return $publications;
     }
 }
